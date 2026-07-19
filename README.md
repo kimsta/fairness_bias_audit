@@ -1,59 +1,48 @@
 # Algorithmic Fairness Audit: Healthcare Risk Prediction
 
-## 📋 Executive Summary
+## Overview
+A machine learning audit and mitigation pipeline for a Heart Failure prediction model. This project demonstrates how standard global accuracy metrics obscure severe localized biases against demographic subgroups, and implements a mathematical mitigation strategy to rectify safety disparities without expanding the dataset.
 
-A machine learning audit of a Heart Failure prediction model, demonstrating how standard accuracy metrics mask dangerous biases against minority demographic groups.
+## Audit Methodology & Findings
+An intersectional audit (Age × Sex) was performed on a baseline Support Vector Machine (SVM) trained on clinical diagnostic data.
 
-I identified a **4.5x Safety Disparity** for young female patients compared to the reference group (older males). I then engineered a hybrid mitigation strategy that reduced this safety gap by **~50%** without requiring additional data collection.
+* **Global Performance:** The baseline model achieved 86% global accuracy.
+* **Subgroup Failure:** The model exhibited a 29.2% False Negative Rate (FNR) for young female patients.
+* **Safety Disparity:** Young females experienced a 4.5x higher misdiagnosis rate (predicting "Healthy" when sick) compared to the reference group of older males (6.5% FNR).
 
-## 🔍 The Problem (Diagnosis)
+## Mitigation Architecture
+To reduce the safety gap, a multi-stage mitigation pipeline was engineered:
 
-Using a Support Vector Machine (SVM) on clinical data, I performed an intersectional audit (Age x Sex).
+1. **Decoupled Classifiers:** Partitioned the training architecture to fit independent SVMs for male and female cohorts, isolating distribution shifts.
+2. **Algorithmic Constraints:** Enforced `class_weight='balanced'` and mapped a non-linear RBF Kernel exclusively for the female cohort to compensate for data scarcity.
+3. **Decision Boundary Thresholding:** Shifted the classification threshold (T = -0.2) for the female model, explicitly prioritizing Recall (Sensitivity) over Precision to minimize missed clinical diagnoses.
 
-* **Finding:** The model achieved **86% global accuracy**.
+## Empirical Results
 
-* **The Failure:** However, it exhibited a **29.2% False Negative Rate (FNR)** for Young Females.
+| Demographic Subgroup | Metric | Baseline Model | Mitigated Model | Absolute Delta |
+| :--- | :--- | :--- | :--- | :--- |
+| **Young Female** | False Negative Rate | 29.2% | 19.4% | -9.8% |
+| **Old Male** | False Negative Rate | 6.5% | 6.5% | 0.0% (Reference) |
 
-* **Impact:** Nearly 1 in 3 sick young women were misdiagnosed as "Healthy," compared to only 1 in 15 (6.5%) for Old Men.
+*Conclusion: The decoupled architecture successfully reduced the fatal misdiagnosis rate for the disadvantaged subgroup by approximately one-third, mathematically trading a controlled increase in False Positives (system burden) for a strict reduction in False Negatives (patient safety risk).*
 
-## 🛠️ The Solution (Mitigation)
+## Execution
 
-I implemented a multi-stage mitigation pipeline:
+### Tech Stack
+* **Python:** Core runtime.
+* **Scikit-Learn:** SVM architecture, pipeline orchestration, scaling.
+* **Pandas:** Demographic slicing and matrix manipulation.
+* **Matplotlib:** Trade-off curve visualization.
 
-1. **Decoupling:** Trained separate classifiers for Men and Women to handle distribution shifts.
-
-2. **Constraints:** Applied `class_weight='balanced'` and an **RBF Kernel** for the female cohort to handle data scarcity and non-linearity.
-
-3. **Threshold Tuning:** Shifted the decision boundary ($T = -0.2$) for women to prioritize Recall (Sensitivity) over Precision.
-
-## 📊 Results
-
-| Subgroup | Metric | Baseline Model | Mitigated Model | Impact | 
- | ----- | ----- | ----- | ----- | ----- | 
-| **Young Female** | **Miss Rate (FNR)** | **29.2%** | **19.4%** | **📉 Risk Reduced (~10pts)** | 
-| **Old Male** | Miss Rate (FNR) | 6.5% | 6.5% | (Reference) | 
-
-*The mitigation explicitly traded a slight increase in False Alarms (Burden) for a significant decrease in Missed Diagnoses (Safety).*
-
-## 🔧 Tech Stack
-
-* **Scikit-Learn:** SVM, Pipeline, Scaling.
-
-* **Pandas:** Data manipulation and demographic slicing.
-
-* **Matplotlib:** Visualization of trade-off curves.
-
-## 🚀 How to Run this Experiment
-
-1. **Install Dependencies**
-
+### Run the Audit Pipeline
+1. **Install Dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
-2. **Run the Audit**
 
-    ```bash
-    python src/main.py
-    ```
-3. **Output** The script will generate the demographic breakdown, run the cross-validation audit, and print the **Safety Gap** results to your terminal.
-    
+2. **Execute:**
+   ```bash
+   python src/main.py
+   ```
+
+*The pipeline will output the demographic matrix, execute cross-validation, and print the raw Safety Gap metrics to the terminal.*
